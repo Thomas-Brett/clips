@@ -1,0 +1,27 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  @@index([username])
+}
+
+model Clips {
+  id        String   @id @default(uuid()) @unique
+  userId    String
+  title     String
+  length    Int
+  uploadedAt DateTime @default(now())
+
+  @@index([id])
+}
