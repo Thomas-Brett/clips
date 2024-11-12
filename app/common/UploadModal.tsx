@@ -30,6 +30,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     const [isSuccess, setIsSuccess] = useState(false);
     const [ffmpeg, setFFmpeg] = useState<any>(null);
     const [isFFmpegReady, setIsFFmpegReady] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState<"idle" | "processing" | "uploading" | "success">("idle");
 
     const resetState = () => {
         setVideoSrc(null);
@@ -152,6 +153,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         if (!ffmpeg || !videoSrc) return;
 
         setIsProcessing(true);
+        setUploadStatus("processing");
 
         ffmpeg.FS("writeFile", "input.mp4", await fetchFile(videoSrc));
 
@@ -169,7 +171,6 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         const trimmedBlob = new Blob([data.buffer], { type: "video/mp4" });
         
         const thumbnailBlob = new Blob([thumbData.buffer], { type: "image/jpeg" });
-        console.log(trimmedBlob);
 
         const formData = new FormData();
         formData.append("video", trimmedBlob, "trimmed-video.mp4");
@@ -177,6 +178,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         formData.append("clipName", clipTitle);
         const durationSeconds = clip.end - clip.start;
         formData.append("length", String(durationSeconds));
+
+        setUploadStatus("uploading");
 
         try {
             const response = await fetch("/api/upload", {
@@ -192,9 +195,16 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             const data = await response.json();
             console.log("Video uploaded successfully!", data);
             setIsSuccess(true);
+            setUploadStatus("success");
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+
         } catch (error) {
             console.error("Error uploading video:", error);
             alert("Failed to upload video. Please try again.");
+            setUploadStatus("idle");
         }
 
         setIsProcessing(false);
@@ -327,10 +337,15 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                     disabled={!videoSrc || !clipTitle.trim() || isProcessing || isSuccess || !isFFmpegReady}
                                     className="py-2 px-4 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors duration-200 font-bold text-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {isProcessing ? (
+                                    {uploadStatus === "processing" ? (
                                         <>
                                             <FaSpinner className="animate-spin mr-2" />
                                             Processing...
+                                        </>
+                                    ) : uploadStatus === "uploading" ? (
+                                        <>
+                                            <FaSpinner className="animate-spin mr-2" />
+                                            Uploading...
                                         </>
                                     ) : isSuccess ? (
                                         <>
