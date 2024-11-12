@@ -5,28 +5,38 @@ import { UserSearchResult, SearchResults } from '../types';
 
 export async function getRecentClips(limit: number = 100, userId?: string | null): Promise<Clip[]> {
     try {
-        const clips = await prisma.clips.findMany({
-            where: userId === undefined ? {
-                user: {
-                    followers: {
-                        some: {
-                            userId: userId
-                        }
-                    }
+        let whereClause = {};
+        
+        if (userId === undefined) {
+            // Get clips from users that the current user follows
+            const following = await prisma.follows.findMany({
+                where: {
+                    userId: userId
+                },
+                select: {
+                    followingId: true
                 }
-            } : userId === null ? {} : {
+            });
+            
+            whereClause = {
+                userId: {
+                    in: following.map(f => f.followingId)
+                }
+            };
+        } else if (userId !== null) {
+            // Get clips from specific user
+            whereClause = {
                 userId: userId
-            },
+            };
+        }
+
+        const clips = await prisma.clips.findMany({
+            where: whereClause,
             take: limit,
             orderBy: {
                 uploadedAt: 'desc'
             },
-            select: {
-                id: true,
-                userId: true,
-                title: true,
-                length: true,
-                uploadedAt: true,
+            include: {
                 user: {
                     select: {
                         username: true
@@ -35,25 +45,10 @@ export async function getRecentClips(limit: number = 100, userId?: string | null
             }
         });
 
-        const userIds = [...new Set(clips.map(clip => clip.userId))];
-        const users = await prisma.user.findMany({
-            where: {
-                id: {
-                    in: userIds
-                }
-            },
-            select: {
-                id: true,
-                username: true
-            }
-        });
-
-        const userMap = new Map(users.map(user => [user.id, user.username]));
-
         return clips.map(clip => ({
             upload_id: clip.id,
             upload_name: clip.title,
-            username: userMap.get(clip.userId) || 'Unknown User',
+            username: clip.user?.username || 'Unknown User',
             length: formatDuration(clip.length),
             date_uploaded: clip.uploadedAt.getTime()
         }));
