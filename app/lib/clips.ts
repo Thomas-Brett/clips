@@ -8,7 +8,6 @@ export async function getRecentClips(limit: number = 100, userId?: string | null
         let whereClause = {};
         
         if (userId === undefined) {
-            // Get clips from users that the current user follows
             const following = await prisma.follows.findMany({
                 where: {
                     userId: userId
@@ -24,7 +23,6 @@ export async function getRecentClips(limit: number = 100, userId?: string | null
                 }
             };
         } else if (userId !== null) {
-            // Get clips from specific user
             whereClause = {
                 userId: userId
             };

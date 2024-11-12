@@ -58,8 +58,8 @@ export default function VideoPlayer({ src, poster }: VideoPlayerProps) {
             const newTime = duration * clickPosition;
     
             videoRef.current.currentTime = newTime;
-            setCurrentTime(newTime); // Set current time to the clicked position
-            setProgress(clickPosition * 100); // Update progress percentage
+            setCurrentTime(newTime);
+            setProgress(clickPosition * 100);
         }
     };
     
