@@ -1,9 +1,22 @@
 "use server";
 import { prisma } from './db';
+import { Clip } from '../types';
+import { UserSearchResult, SearchResults } from '../types';
 
-export async function getRecentClips(limit: number = 100) {
+export async function getRecentClips(limit: number = 100, userId?: string | null): Promise<Clip[]> {
     try {
         const clips = await prisma.clips.findMany({
+            where: userId === undefined ? {
+                user: {
+                    followers: {
+                        some: {
+                            userId: userId
+                        }
+                    }
+                }
+            } : userId === null ? {} : {
+                userId: userId
+            },
             take: limit,
             orderBy: {
                 uploadedAt: 'desc'
@@ -13,7 +26,12 @@ export async function getRecentClips(limit: number = 100) {
                 userId: true,
                 title: true,
                 length: true,
-                uploadedAt: true
+                uploadedAt: true,
+                user: {
+                    select: {
+                        username: true
+                    }
+                }
             }
         });
 
@@ -51,7 +69,7 @@ function formatDuration(seconds: number): string {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-export async function getClip(clip_id: string) {
+export async function getClip(clip_id: string): Promise<Clip> {
     try {
         const clip = await prisma.clips.findUnique({
             where: {
@@ -62,7 +80,12 @@ export async function getClip(clip_id: string) {
                 userId: true,
                 title: true,
                 length: true,
-                uploadedAt: true
+                uploadedAt: true,
+                user: {
+                    select: {
+                        username: true
+                    }
+                }
             }
         });
 
@@ -70,20 +93,10 @@ export async function getClip(clip_id: string) {
             throw new Error('Clip not found');
         }
 
-        const user = await prisma.user.findUnique({
-            where: {
-                id: clip.userId
-            },
-            select: {
-                id: true,
-                username: true
-            }
-        });
-
         return {
             upload_id: clip.id,
             upload_name: clip.title,
-            username: user?.username || 'Unknown User',
+            username: clip.user?.username || 'Unknown User',
             length: formatDuration(clip.length),
             date_uploaded: clip.uploadedAt.getTime()
         };
@@ -93,3 +106,112 @@ export async function getClip(clip_id: string) {
     }
 }
     
+export async function searchClips(query: string): Promise<SearchResults> {
+    try {
+        const usernameMatch = query.match(/@(\w+)/);
+        const categoryMatch = query.match(/@\([^)]+\)/);
+        
+        let titleQuery = query
+            .replace(/@\w+/g, '')
+            .replace(/@\([^)]+\)/g, '')
+            .trim();
+
+        let userResult: UserSearchResult | undefined;
+        
+        if (usernameMatch) {
+            const username = usernameMatch[1];
+            const user = await prisma.user.findFirst({
+                where: { username },
+                select: {
+                    id: true,
+                    username: true,
+                    _count: {
+                        select: { clips: true }
+                    }
+                }
+            });
+            
+            if (user) {
+                userResult = {
+                    id: user.id,
+                    username: user.username,
+                    clipCount: user._count.clips
+                };
+            }
+        }
+
+        const clips = await prisma.clips.findMany({
+            where: {
+                AND: [
+                    titleQuery ? {
+                        title: {
+                            contains: titleQuery,
+                        }
+                    } : {},
+                    usernameMatch ? {
+                        user: {
+                            username: {
+                                equals: usernameMatch[1],
+                            }
+                        }
+                    } : {},
+                    categoryMatch ? {
+                        categories: {
+                            some: {
+                                name: {
+                                    equals: categoryMatch[1],
+                                }
+                            }
+                        }
+                    } : {}
+                ]
+            },
+            take: 5,
+            orderBy: {
+                uploadedAt: 'desc'
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true
+                    }
+                }
+            }
+        });
+
+        return {
+            users: userResult ? [userResult] : [],
+            clips: clips.map(clip => ({
+                upload_id: clip.id,
+                upload_name: clip.title,
+                username: clip.user?.username || 'Unknown User',
+                length: formatDuration(clip.length),
+                date_uploaded: clip.uploadedAt.getTime()
+            }))
+        };
+    } catch (error) {
+        console.error('Error searching clips:', error);
+        return { clips: [], users: [] };
+    }
+}
+
+export async function getUserClips(username: string): Promise<Clip[]> {
+    const clips = await prisma.clips.findMany({
+        where: { user: { username: username } },
+        include: {
+            user: {
+                select: {
+                    username: true
+                }
+            }
+        }
+    });
+    
+    return clips.map(clip => ({
+        upload_id: clip.id,
+        upload_name: clip.title,
+        username: clip.user?.username || 'Unknown User',
+        length: formatDuration(clip.length),
+        date_uploaded: clip.uploadedAt.getTime()
+    }));
+}

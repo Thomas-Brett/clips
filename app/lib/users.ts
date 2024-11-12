@@ -51,3 +51,79 @@ export async function getUserByUsername(username: string) {
         where: { username: username.toLowerCase() }
     });
 }
+
+export async function followUser(userId: string, followingId: string): Promise<UserResponse> {
+    try {
+        if (userId === followingId) {
+            throw new Error('Cannot follow yourself');
+        }
+
+        const existingFollow = await prisma.follows.findUnique({
+            where: {
+                userId_followingId: {
+                    userId,
+                    followingId
+                }
+            }
+        });
+
+        if (existingFollow) {
+            // Unfollow
+            await prisma.follows.delete({
+                where: {
+                    userId_followingId: {
+                        userId,
+                        followingId
+                    }
+                }
+            });
+            return { success: true, user: { isFollowing: false } };
+        }
+
+        // Follow
+        await prisma.follows.create({
+            data: {
+                userId,
+                followingId
+            }
+        });
+
+        return { success: true, user: { isFollowing: true } };
+    } catch (error) {
+        return handleError(error);
+    }
+}
+
+export async function isFollowingEndpoint(userId: string, followingId: string): Promise<boolean> {
+    if (!userId || !followingId) return false;
+    
+    const follow = await prisma.follows.findUnique({
+        where: {
+            userId_followingId: {
+                userId,
+                followingId
+            }
+        }
+    });
+    
+    return !!follow;
+}
+
+export async function getFollowStats(userId: string) {
+    const stats = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            _count: {
+                select: {
+                    followers: true,
+                    following: true
+                }
+            }
+        }
+    });
+    
+    return {
+        followersCount: stats?._count.followers ?? 0,
+        followingCount: stats?._count.following ?? 0
+    };
+}

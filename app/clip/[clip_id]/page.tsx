@@ -2,6 +2,7 @@ import { getClip } from "@/app/lib/clips";
 import Header from "@/app/common/Header";
 import { notFound } from "next/navigation";
 import VideoPlayer from "@/app/common/VideoPlayer";
+import Link from "next/link";
 
 interface PageProps {
     params: Promise<{
@@ -31,12 +32,12 @@ export default async function ClipPage({ params }: PageProps) {
                         poster={`/api/thumbnail/${clip.upload_id}`}
                     />
                 </div>
-                <div className="w-full mt-4">
+                <div className="w-full mt-4 bg-panel rounded-lg p-4">
                     <h1 className="text-3xl font-bold text-white">
                         {clip.upload_name}
                     </h1>
                     <div className="flex items-center gap-4 mt-2 text-light">
-                        <span>{clip.username}</span>
+                        <Link href={`/user/${clip.username}`}>{clip.username}</Link>
                         <span>•</span>
                         <span>{clipDate}</span>
                         <span>•</span>
