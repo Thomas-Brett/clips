@@ -1,9 +1,17 @@
 "use client";
 
-import { FaXmark, FaVideo, FaPlay, FaPause, FaVolumeHigh, FaSpinner } from "react-icons/fa6";
+import {
+    FaXmark,
+    FaVideo,
+    FaPlay,
+    FaPause,
+    FaVolumeHigh,
+    FaSpinner,
+} from "react-icons/fa6";
 import { useState, useRef, useEffect } from "react";
 import Trimmer from "./Trimmer";
-import { createFFmpeg, fetchFile } from "@ffmpeg/ffmpeg";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { toBlobURL, fetchFile } from "@ffmpeg/util";
 
 interface UploadModalProps {
     isOpen: boolean;
@@ -16,21 +24,24 @@ interface VideoClip {
 }
 
 export function UploadModal({ isOpen, onClose }: UploadModalProps) {
+    const ffmpegRef = useRef(new FFmpeg());
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [volume, setVolume] = useState(1);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [clip, setClip] = useState<VideoClip>({ start: 0, end: 0 });
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [clipTitle, setClipTitle] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
     const [thumbnail, setThumbnail] = useState<string | null>(null);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [ffmpeg, setFFmpeg] = useState<any>(null);
     const [isFFmpegReady, setIsFFmpegReady] = useState(false);
-    const [uploadStatus, setUploadStatus] = useState<"idle" | "processing" | "uploading" | "success">("idle");
+    const [uploadStatus, setUploadStatus] = useState<
+        "idle" | "processing" | "uploading" | "success"
+    >("idle");
 
     const resetState = () => {
         setVideoSrc(null);
@@ -43,7 +54,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         setIsProcessing(false);
         setThumbnail(null);
         setIsSuccess(false);
-        
+
         if (videoSrc) {
             URL.revokeObjectURL(videoSrc);
         }
@@ -52,21 +63,21 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     useEffect(() => {
         if (typeof window !== "undefined") {
             const loadFFmpeg = async () => {
-                try {
-                    const origin = window.location.origin;
-                    const ffmpegInstance = createFFmpeg({
-                        log: true,
-                        corePath: origin + "/ffmpeg-core.js",
-                        wasmPath: origin + "/ffmpeg-core.wasm",
-                        workerPath: origin + "/ffmpeg-core.worker.js",
-                    });
-                    await ffmpegInstance.load();
-                    setFFmpeg(ffmpegInstance);
-                    setIsFFmpegReady(true);
-                } catch (error) {
-                    console.error('Error loading FFmpeg:', error);
-                    alert('Failed to load video processing capabilities');
-                }
+                const origin = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+                const ffmpegInstance = ffmpegRef.current;
+
+                await ffmpegInstance.load({
+                    coreURL: await toBlobURL(
+                        `${origin}/ffmpeg-core.js`,
+                        "text/javascript",
+                    ),
+                    wasmURL: await toBlobURL(
+                        `${origin}/ffmpeg-core.wasm`,
+                        "application/wasm",
+                    ),
+                });''
+
+                setIsFFmpegReady(true);
             };
             loadFFmpeg();
         }
@@ -132,7 +143,9 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 setDuration(vidDuration);
                 setClip({ start: 0, end: vidDuration });
             } else {
-                alert("Could not determine video duration. Please try a different video.");
+                alert(
+                    "Could not determine video duration. Please try a different video.",
+                );
                 resetState();
             }
         }
@@ -140,37 +153,56 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
     const generateThumbnail = (video: HTMLVideoElement): Promise<string> => {
         return new Promise((resolve) => {
-            const canvas = document.createElement('canvas');
+            const canvas = document.createElement("canvas");
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext("2d");
             ctx?.drawImage(video, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg', 0.8));
+            resolve(canvas.toDataURL("image/jpeg", 0.8));
         });
     };
 
     const handleUpload = async () => {
-        if (!ffmpeg || !videoSrc) return;
+        if (!isFFmpegReady || !videoSrc) return;
+        const ffmpeg = ffmpegRef.current;
 
         setIsProcessing(true);
         setUploadStatus("processing");
 
-        ffmpeg.FS("writeFile", "input.mp4", await fetchFile(videoSrc));
+        ffmpeg.writeFile("input.mp4", await fetchFile(videoSrc));
 
         const startTime = clip.start.toFixed(2);
         const durationTime = (clip.end - clip.start).toFixed(2);
 
-        await ffmpeg.run("-ss", startTime, "-i", "input.mp4", "-t", durationTime, "-c", "copy", "output.mp4");
+        await ffmpeg.exec([
+            "-ss",
+            startTime,
+            "-i",
+            "input.mp4",
+            "-t",
+            durationTime,
+            "-c",
+            "copy",
+            "output.mp4",
+        ]);
 
-        const data = ffmpeg.FS("readFile", "output.mp4");
+        const data = await ffmpeg.readFile("output.mp4");
 
-        await ffmpeg.run("-i", "output.mp4", "-ss", "00:00:01.000", "-vframes", "1", "thumbnail.jpg");
+        await ffmpeg.exec([
+            "-i",
+            "output.mp4",
+            "-ss",
+            "00:00:01.000",
+            "-vframes",
+            "1",
+            "thumbnail.jpg",
+        ]);
 
-        const thumbData = ffmpeg.FS("readFile", "thumbnail.jpg");
+        const thumbData = await ffmpeg.readFile("thumbnail.jpg");
 
-        const trimmedBlob = new Blob([data.buffer], { type: "video/mp4" });
-        
-        const thumbnailBlob = new Blob([thumbData.buffer], { type: "image/jpeg" });
+        const trimmedBlob = new Blob([data], { type: "video/mp4" });
+
+        const thumbnailBlob = new Blob([thumbData], { type: "image/jpeg" });
 
         const formData = new FormData();
         formData.append("video", trimmedBlob, "trimmed-video.mp4");
@@ -200,7 +232,6 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             setTimeout(() => {
                 window.location.reload();
             }, 2000);
-
         } catch (error) {
             console.error("Error uploading video:", error);
             alert("Failed to upload video. Please try again.");
@@ -209,9 +240,9 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
         setIsProcessing(false);
 
-        ffmpeg.FS("unlink", "input.mp4");
-        ffmpeg.FS("unlink", "output.mp4");
-        ffmpeg.FS("unlink", "thumbnail.jpg");
+        ffmpeg.deleteFile("input.mp4");
+        ffmpeg.deleteFile("output.mp4");
+        ffmpeg.deleteFile("thumbnail.jpg");
     };
 
     const handleClose = () => {
@@ -224,12 +255,14 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     return (
         <>
             <div
-                className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
+                className="bg-opacity-50 fixed inset-0 z-40 bg-black backdrop-blur-xs"
                 onClick={handleClose}
             />
-            <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl bg-panel rounded-lg shadow-lg z-50">
-                <div className="flex items-center justify-between bg-dark p-6 rounded-t-lg">
-                    <h2 className="text-light text-2xl font-bold">Upload and Trim Video</h2>
+            <div className="bg-panel fixed top-1/2 left-1/2 z-50 w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-lg shadow-lg">
+                <div className="bg-dark flex items-center justify-between rounded-t-lg p-6">
+                    <h2 className="text-light text-2xl font-bold">
+                        Upload and Trim Video
+                    </h2>
                     <button
                         onClick={handleClose}
                         className="text-light hover:text-accent transition-colors duration-200"
@@ -237,15 +270,15 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                         <FaXmark className="text-xl" />
                     </button>
                 </div>
-                <div className="px-8 pb-8 py-4">
+                <div className="px-8 py-4 pb-8">
                     {!videoSrc ? (
                         <div
-                            className="flex flex-col items-center justify-center border-2 border-dashed border-light rounded-lg h-64 relative cursor-pointer hover:border-accent transition-colors duration-200"
+                            className="border-light hover:border-accent relative flex h-64 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors duration-200"
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                             onClick={() => fileInputRef.current?.click()}
                         >
-                            <FaVideo className="text-light text-4xl mb-4" />
+                            <FaVideo className="text-light mb-4 text-4xl" />
                             <p className="text-light text-lg">Select Video</p>
                             <input
                                 type="file"
@@ -253,7 +286,10 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                 ref={fileInputRef}
                                 className="hidden"
                                 onChange={(e) => {
-                                    if (e.target.files && e.target.files.length > 0) {
+                                    if (
+                                        e.target.files &&
+                                        e.target.files.length > 0
+                                    ) {
                                         handleFileSelect(e.target.files[0]);
                                     }
                                 }}
@@ -263,17 +299,21 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                         <>
                             <div className="flex flex-col space-y-6">
                                 <div className="flex flex-col space-y-2">
-                                    <label className="text-light font-bold text-lg">Clip Title</label>
+                                    <label className="text-light text-lg font-bold">
+                                        Clip Title
+                                    </label>
                                     <input
                                         type="text"
                                         value={clipTitle}
-                                        onChange={(e) => setClipTitle(e.target.value)}
+                                        onChange={(e) =>
+                                            setClipTitle(e.target.value)
+                                        }
                                         placeholder="Enter clip title..."
-                                        className="bg-dark rounded px-3 py-2 text-lg text-white border border-border focus:border-accent focus:outline-none transition-colors duration-200"
+                                        className="bg-dark border-border focus:border-accent rounded-sm border px-3 py-2 text-lg text-white transition-colors duration-200 focus:outline-hidden"
                                     />
                                 </div>
-                                
-                                <div className="w-full bg-dark rounded-lg overflow-hidden">
+
+                                <div className="bg-dark w-full overflow-hidden rounded-lg">
                                     <video
                                         ref={videoRef}
                                         src={videoSrc}
@@ -287,7 +327,11 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                             onClick={togglePlayPause}
                                             className="text-light hover:text-accent transition-colors duration-200"
                                         >
-                                            {isPlaying ? <FaPause className="text-2xl" /> : <FaPlay className="text-2xl" />}
+                                            {isPlaying ? (
+                                                <FaPause className="text-2xl" />
+                                            ) : (
+                                                <FaPlay className="text-2xl" />
+                                            )}
                                         </button>
                                         <div className="flex items-center space-x-2">
                                             <FaVolumeHigh className="text-light" />
@@ -303,10 +347,13 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="w-full">
                                     <Trimmer
-                                        selection={{ start: clip.start, end: clip.end }}
+                                        selection={{
+                                            start: clip.start,
+                                            end: clip.end,
+                                        }}
                                         setSelection={(newSelection) => {
                                             setClip(newSelection);
                                         }}
@@ -314,18 +361,19 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                         currentTime={currentTime}
                                         setCurrentTime={(time) => {
                                             if (videoRef.current) {
-                                                videoRef.current.currentTime = time;
+                                                videoRef.current.currentTime =
+                                                    time;
                                                 setCurrentTime(time);
                                             }
                                         }}
                                     />
                                 </div>
                             </div>
-                            <div className="flex justify-end space-x-4 mt-6">
+                            <div className="mt-6 flex justify-end space-x-4">
                                 <button
                                     onClick={handleClose}
                                     disabled={isProcessing}
-                                    className="py-2 px-4 bg-transparent border border-white text-white rounded-lg hover:bg-panel-hover transition-colors duration-200 font-bold text-lg"
+                                    className="hover:bg-panel-hover rounded-lg border border-white bg-transparent px-4 py-2 text-lg font-bold text-white transition-colors duration-200"
                                 >
                                     Cancel
                                 </button>
@@ -334,25 +382,29 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                         e.preventDefault();
                                         handleUpload();
                                     }}
-                                    disabled={!videoSrc || !clipTitle.trim() || isProcessing || isSuccess || !isFFmpegReady}
-                                    className="py-2 px-4 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors duration-200 font-bold text-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={
+                                        !videoSrc ||
+                                        !clipTitle.trim() ||
+                                        isProcessing ||
+                                        isSuccess ||
+                                        !isFFmpegReady
+                                    }
+                                    className="bg-accent hover:bg-accent-hover flex items-center justify-center rounded-lg px-4 py-2 text-lg font-bold text-white transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {uploadStatus === "processing" ? (
                                         <>
-                                            <FaSpinner className="animate-spin mr-2" />
+                                            <FaSpinner className="mr-2 animate-spin" />
                                             Processing...
                                         </>
                                     ) : uploadStatus === "uploading" ? (
                                         <>
-                                            <FaSpinner className="animate-spin mr-2" />
+                                            <FaSpinner className="mr-2 animate-spin" />
                                             Uploading...
                                         </>
                                     ) : isSuccess ? (
-                                        <>
-                                            ✓ Upload Complete
-                                        </>
+                                        <>✓ Upload Complete</>
                                     ) : (
-                                        'Upload'
+                                        "Upload"
                                     )}
                                 </button>
                             </div>
@@ -362,4 +414,4 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             </div>
         </>
     );
-} 
+}

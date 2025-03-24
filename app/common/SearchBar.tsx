@@ -107,7 +107,7 @@ export default function SearchBar() {
                     }}
                     placeholder="Search..."
                     className="w-full rounded-xl bg-med py-2 pl-11 pr-4 text-lg text-white placeholder-light/70 
-                             border border-border focus:border-accent outline-none focus:bg-med transition-all duration-200"
+                             border border-border focus:border-accent outline-hidden focus:bg-med transition-all duration-200"
                 />
             </div>
 
@@ -119,7 +119,7 @@ export default function SearchBar() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-10" 
+                            className="fixed inset-0 bg-black/20 backdrop-blur-xs z-10" 
                             onClick={() => setShowResults(false)}
                         />
                         <motion.div 

@@ -10,15 +10,15 @@ import { useRouter } from 'next/navigation';
 const LoadingSkeleton = () => (
     <div className="flex flex-wrap justify-center">
         {[...Array(6)].map((_, i) => (
-            <div key={i} className="mx-2 my-4 inline-flex w-96 flex-col rounded bg-panel animate-pulse">
+            <div key={i} className="mx-2 my-4 inline-flex w-96 flex-col rounded-sm bg-panel animate-pulse">
                 <div className="relative h-[216px] w-full rounded-t-lg bg-panel-hover">
                     <div className="absolute bottom-1 right-1 w-10 h-5 rounded-lg bg-panel-hover" />
                 </div>
                 <div className="mx-1 flex w-full flex-col px-2 py-1">
-                    <div className="mt-1 h-8 bg-panel-hover rounded w-3/4" />
+                    <div className="mt-1 h-8 bg-panel-hover rounded-sm w-3/4" />
                     <div className="my-1 flex items-center justify-between">
-                        <div className="h-4 bg-panel-hover rounded w-24" />
-                        <div className="h-4 bg-panel-hover rounded w-32" />
+                        <div className="h-4 bg-panel-hover rounded-sm w-24" />
+                        <div className="h-4 bg-panel-hover rounded-sm w-32" />
                     </div>
                 </div>
             </div>

@@ -1,3 +1,25 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+    --color-transparent: transparent;
+    --color-accent: #49c196;
+    --color-accent-hover: #3a9a7d;
+    --color-primary: #24282d;
+    --color-panel: #363c44;
+    --color-panel-hover: #444b55;
+    --color-med: #2e3338;
+    --color-light: #93979f;
+    --color-border: #5a636f;
+    --color-hover: #2e3338;
+    --color-dark: #1e2226;
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}

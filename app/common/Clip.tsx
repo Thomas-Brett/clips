@@ -8,7 +8,7 @@ export default function Clip({ clip }: { clip: ClipType }) {
     let clipDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes() > 10 ? date.getMinutes() : "0" + date.getMinutes()}`;
 
         return (
-        <div className={"mx-2 my-4 inline-flex w-96 flex-col rounded bg-panel"}>
+        <div className={"mx-2 my-4 inline-flex w-96 flex-col rounded-sm bg-panel"}>
             <Link href={`/clip/${clip.upload_id}`}>
                 <div className={"relative h-[216px] w-full cursor-pointer rounded-t-lg bg-panel"}>
                     <img src={`/api/thumbnail/${clip.upload_id}`} className={"rounded-t-lg"} alt={"Thumbnail"} />

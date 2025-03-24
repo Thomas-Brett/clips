@@ -126,7 +126,7 @@ export default function VideoPlayer({ src, poster }: VideoPlayerProps) {
                 onClick={handlePlayPause}
             />
             
-            <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 transition-opacity duration-300 ${isControlsVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-4 transition-opacity duration-300 ${isControlsVisible ? 'opacity-100' : 'opacity-0'}`}>
                 <div
                     ref={progressRef}
                     className="w-full h-1 bg-gray-600 cursor-pointer mb-4 relative"

@@ -72,7 +72,7 @@ export default function LoginPage() {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             disabled={isSubmitting}
-                            className="w-full p-3 rounded-lg bg-med text-white text-lg border border-border focus:border-accent focus:outline-none transition-colors duration-200"
+                            className="w-full p-3 rounded-lg bg-med text-white text-lg border border-border focus:border-accent focus:outline-hidden transition-colors duration-200"
                         />
                     </div>
                     
@@ -84,7 +84,7 @@ export default function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             disabled={isSubmitting}
-                            className="w-full p-3 rounded-lg bg-med text-white text-lg border border-border focus:border-accent focus:outline-none transition-colors duration-200"
+                            className="w-full p-3 rounded-lg bg-med text-white text-lg border border-border focus:border-accent focus:outline-hidden transition-colors duration-200"
                         />
                     </div>
 

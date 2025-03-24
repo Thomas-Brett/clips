@@ -155,7 +155,7 @@ export default function Trimmer({ selection, setSelection, duration, currentTime
                                 setCurrentTime(newTime);
                             }
                         }}
-                        className="bg-dark rounded px-2 py-1 text-light w-20"
+                        className="bg-dark rounded-sm px-2 py-1 text-light w-20"
                     />
                 </div>
                 <div className="flex flex-col">
@@ -171,12 +171,12 @@ export default function Trimmer({ selection, setSelection, duration, currentTime
                                 setCurrentTime(newTime);
                             }
                         }}
-                        className="bg-dark rounded px-2 py-1 text-light w-20"
+                        className="bg-dark rounded-sm px-2 py-1 text-light w-20"
                     />
                 </div>
                 <div className="flex flex-col items-center mx-auto">
                     <label className="text-sm text-light/70">Current Time</label>
-                    <span className="bg-panel-hover rounded px-2 py-1 text-white w-20 text-center">
+                    <span className="bg-panel-hover rounded-sm px-2 py-1 text-white w-20 text-center">
                         {formatTime(currentTime)}
                     </span>
                 </div>
@@ -188,7 +188,7 @@ export default function Trimmer({ selection, setSelection, duration, currentTime
             </div>
 
             {/* Existing trimmer component */}
-            <div className="bg-panel-hover relative h-12 cursor-pointer rounded" ref={trimmerRef} onMouseDown={handleScrubMouseDown}>
+            <div className="bg-panel-hover relative h-12 cursor-pointer rounded-sm" ref={trimmerRef} onMouseDown={handleScrubMouseDown}>
                 {/* Selected Part */}
                 <div
                     className="bg-accent absolute top-0 h-full"
