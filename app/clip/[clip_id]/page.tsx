@@ -1,7 +1,7 @@
 import { getClip } from "@/app/lib/clips";
-import Header from "@/app/common/Header";
+import Header from "@/app/components/Header";
 import { notFound } from "next/navigation";
-import VideoPlayer from "@/app/common/VideoPlayer";
+import VideoPlayer from "@/app/clip/[clip_id]/VideoPlayer";
 import Link from "next/link";
 
 interface PageProps {
@@ -23,20 +23,15 @@ export default async function ClipPage({ params }: PageProps) {
     const clipDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes() > 10 ? date.getMinutes() : "0" + date.getMinutes()}`;
 
     return (
-        <div className="flex flex-col h-screen w-screen">
+        <div className="flex h-screen w-screen flex-col">
             <Header />
-            <div className="flex flex-col items-center p-8 max-w-6xl mx-auto w-full">
-                <div className="w-full aspect-video bg-panel rounded-lg overflow-hidden relative">
-                    <VideoPlayer
-                        src={`/api/video/${clip.upload_id}`}
-                        poster={`/api/thumbnail/${clip.upload_id}`}
-                    />
+            <div className="mx-auto flex w-full max-w-6xl flex-col items-center p-8">
+                <div className="bg-panel relative aspect-video w-full overflow-hidden rounded-lg">
+                    <VideoPlayer src={`/api/video/${clip.upload_id}`} poster={`/api/thumbnail/${clip.upload_id}`} />
                 </div>
-                <div className="w-full mt-4 bg-panel rounded-lg p-4">
-                    <h1 className="text-3xl font-bold text-white">
-                        {clip.upload_name}
-                    </h1>
-                    <div className="flex items-center gap-4 mt-2 text-light">
+                <div className="bg-panel mt-4 w-full rounded-lg p-4">
+                    <h1 className="text-3xl font-bold text-white">{clip.upload_name}</h1>
+                    <div className="text-light mt-2 flex items-center gap-4">
                         <Link href={`/user/${clip.username}`}>{clip.username}</Link>
                         <span>•</span>
                         <span>{clipDate}</span>

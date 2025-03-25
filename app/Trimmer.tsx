@@ -3,7 +3,13 @@ import { useCallback, useEffect, useRef } from "react";
 import { useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 
-export default function Trimmer({ selection, setSelection, duration, currentTime, setCurrentTime }: {
+export default function Trimmer({
+    selection,
+    setSelection,
+    duration,
+    currentTime,
+    setCurrentTime,
+}: {
     selection: { start: number; end: number };
     setSelection: (selection: { start: number; end: number }) => void;
     duration: number;
@@ -143,52 +149,50 @@ export default function Trimmer({ selection, setSelection, duration, currentTime
         <div className="space-y-4">
             <div className="flex gap-4">
                 <div className="flex flex-col">
-                    <label className="text-sm text-light/70">Start Time</label>
+                    <label className="text-light text-sm">Start Time</label>
                     <input
                         type="text"
                         value={formatTime(selection.start)}
                         onChange={(e) => {
-                            const [min, sec] = e.target.value.split(':').map(Number);
+                            const [min, sec] = e.target.value.split(":").map(Number);
                             const newTime = min * 60 + sec;
                             if (!isNaN(newTime) && newTime >= 0 && newTime < selection.end) {
                                 setSelection({ ...selection, start: newTime });
                                 setCurrentTime(newTime);
                             }
                         }}
-                        className="bg-dark rounded-sm px-2 py-1 text-light w-20"
+                        className="bg-secondary w-20 rounded-sm px-2 py-1 text-white"
                     />
                 </div>
                 <div className="flex flex-col">
-                    <label className="text-sm text-light/70">End Time</label>
+                    <label className="text-light text-sm">End Time</label>
                     <input
                         type="text"
                         value={formatTime(selection.end)}
                         onChange={(e) => {
-                            const [min, sec] = e.target.value.split(':').map(Number);
+                            const [min, sec] = e.target.value.split(":").map(Number);
                             const newTime = min * 60 + sec;
                             if (!isNaN(newTime) && newTime <= duration && newTime > selection.start) {
                                 setSelection({ ...selection, end: newTime });
                                 setCurrentTime(newTime);
                             }
                         }}
-                        className="bg-dark rounded-sm px-2 py-1 text-light w-20"
+                        className="bg-secondary w-20 rounded-sm px-2 py-1 text-white"
                     />
                 </div>
-                <div className="flex flex-col items-center mx-auto">
-                    <label className="text-sm text-light/70">Current Time</label>
-                    <span className="bg-panel-hover rounded-sm px-2 py-1 text-white w-20 text-center">
-                        {formatTime(currentTime)}
-                    </span>
+                <div className="mx-auto flex flex-col items-center">
+                    <label className="text-light text-sm">Current Time</label>
+                    <span className="bg-secondary text-light w-20 rounded-sm px-2 py-1 text-center">{formatTime(currentTime)}</span>
                 </div>
 
-                <div className="flex flex-col items-end ml-auto">
-                    <span className="text-sm text-light/70">Clip Duration</span>
-                    <span className="text-light">{formatTime(selection.end - selection.start)}</span>
+                <div className="ml-auto flex flex-col items-end">
+                    <span className="text-light text-sm">Clip Duration</span>
+                    <span className="text-light bg-secondary w-20 rounded-sm px-2 py-1 text-center">{formatTime(selection.end - selection.start)}</span>
                 </div>
             </div>
 
             {/* Existing trimmer component */}
-            <div className="bg-panel-hover relative h-12 cursor-pointer rounded-sm" ref={trimmerRef} onMouseDown={handleScrubMouseDown}>
+            <div className="bg-primary-panel relative h-12 cursor-pointer rounded-sm" ref={trimmerRef} onMouseDown={handleScrubMouseDown}>
                 {/* Selected Part */}
                 <div
                     className="bg-accent absolute top-0 h-full"
@@ -199,7 +203,7 @@ export default function Trimmer({ selection, setSelection, duration, currentTime
                 >
                     {/* Left Slider */}
                     <div
-                        className="bg-accent-hover absolute left-[-16px] top-0 flex h-full w-4 scale-110 cursor-col-resize items-center justify-center rounded-l-lg rounded-r transition-all hover:scale-125"
+                        className="bg-accent-hover absolute top-0 left-[-16px] flex h-full w-4 scale-110 cursor-col-resize items-center justify-center rounded-l-lg rounded-r transition-all hover:scale-125"
                         onMouseDown={(e) => handleMouseDown(e, "left")}
                         style={{ zIndex: 2 }}
                     >
@@ -208,7 +212,7 @@ export default function Trimmer({ selection, setSelection, duration, currentTime
 
                     {/* Right Slider */}
                     <div
-                        className="bg-accent-hover absolute right-[-16px] top-0 flex h-full w-4 scale-110 cursor-col-resize items-center justify-center rounded-l rounded-r-lg transition-all hover:scale-125"
+                        className="bg-accent-hover absolute top-0 right-[-16px] flex h-full w-4 scale-110 cursor-col-resize items-center justify-center rounded-l rounded-r-lg transition-all hover:scale-125"
                         onMouseDown={(e) => handleMouseDown(e, "right")}
                         style={{ zIndex: 2 }}
                     >

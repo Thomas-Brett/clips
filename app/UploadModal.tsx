@@ -1,29 +1,20 @@
 "use client";
 
-import {
-    FaXmark,
-    FaVideo,
-    FaPlay,
-    FaPause,
-    FaVolumeHigh,
-    FaSpinner,
-} from "react-icons/fa6";
+import { FaXmark, FaVideo, FaPlay, FaPause, FaVolumeHigh, FaSpinner } from "react-icons/fa6";
 import { useState, useRef, useEffect } from "react";
 import Trimmer from "./Trimmer";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL, fetchFile } from "@ffmpeg/util";
-
-interface UploadModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-}
+import { useModal } from "./context/modalContext";
+import Button from "./components/primitives/Button";
 
 interface VideoClip {
     start: number;
     end: number;
 }
 
-export function UploadModal({ isOpen, onClose }: UploadModalProps) {
+export default function UploadModal() {
+    const { isOpen, setIsOpen } = useModal();
     const ffmpegRef = useRef(new FFmpeg());
     const videoRef = useRef<HTMLVideoElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,9 +30,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     const [thumbnail, setThumbnail] = useState<string | null>(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isFFmpegReady, setIsFFmpegReady] = useState(false);
-    const [uploadStatus, setUploadStatus] = useState<
-        "idle" | "processing" | "uploading" | "success"
-    >("idle");
+    const [uploadStatus, setUploadStatus] = useState<"idle" | "processing" | "uploading" | "success">("idle");
 
     const resetState = () => {
         setVideoSrc(null);
@@ -67,15 +56,10 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 const ffmpegInstance = ffmpegRef.current;
 
                 await ffmpegInstance.load({
-                    coreURL: await toBlobURL(
-                        `${origin}/ffmpeg-core.js`,
-                        "text/javascript",
-                    ),
-                    wasmURL: await toBlobURL(
-                        `${origin}/ffmpeg-core.wasm`,
-                        "application/wasm",
-                    ),
-                });''
+                    coreURL: await toBlobURL(`${origin}/ffmpeg-core.js`, "text/javascript"),
+                    wasmURL: await toBlobURL(`${origin}/ffmpeg-core.wasm`, "application/wasm"),
+                });
+                ("");
 
                 setIsFFmpegReady(true);
             };
@@ -143,9 +127,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 setDuration(vidDuration);
                 setClip({ start: 0, end: vidDuration });
             } else {
-                alert(
-                    "Could not determine video duration. Please try a different video.",
-                );
+                alert("Could not determine video duration. Please try a different video.");
                 resetState();
             }
         }
@@ -174,29 +156,11 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         const startTime = clip.start.toFixed(2);
         const durationTime = (clip.end - clip.start).toFixed(2);
 
-        await ffmpeg.exec([
-            "-ss",
-            startTime,
-            "-i",
-            "input.mp4",
-            "-t",
-            durationTime,
-            "-c",
-            "copy",
-            "output.mp4",
-        ]);
+        await ffmpeg.exec(["-ss", startTime, "-i", "input.mp4", "-t", durationTime, "-c", "copy", "output.mp4"]);
 
         const data = await ffmpeg.readFile("output.mp4");
 
-        await ffmpeg.exec([
-            "-i",
-            "output.mp4",
-            "-ss",
-            "00:00:01.000",
-            "-vframes",
-            "1",
-            "thumbnail.jpg",
-        ]);
+        await ffmpeg.exec(["-i", "output.mp4", "-ss", "00:00:01.000", "-vframes", "1", "thumbnail.jpg"]);
 
         const thumbData = await ffmpeg.readFile("thumbnail.jpg");
 
@@ -247,26 +211,18 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
     const handleClose = () => {
         resetState();
-        onClose();
+        setIsOpen(false);
     };
 
     if (!isOpen) return null;
 
     return (
         <>
-            <div
-                className="bg-opacity-50 fixed inset-0 z-40 bg-black backdrop-blur-xs"
-                onClick={handleClose}
-            />
-            <div className="bg-panel fixed top-1/2 left-1/2 z-50 w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-lg shadow-lg">
-                <div className="bg-dark flex items-center justify-between rounded-t-lg p-6">
-                    <h2 className="text-light text-2xl font-bold">
-                        Upload and Trim Video
-                    </h2>
-                    <button
-                        onClick={handleClose}
-                        className="text-light hover:text-accent transition-colors duration-200"
-                    >
+            <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs" onClick={handleClose} />
+            <div className="bg-primary fixed top-1/2 left-1/2 z-50 w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-lg shadow-lg">
+                <div className="bg-secondary flex items-center justify-between rounded-t-lg p-4">
+                    <h2 className="text-light text-2xl font-bold">Upload and Trim Video</h2>
+                    <button onClick={handleClose} className="text-light hover:text-accent transition-colors duration-200">
                         <FaXmark className="text-xl" />
                     </button>
                 </div>
@@ -286,10 +242,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                 ref={fileInputRef}
                                 className="hidden"
                                 onChange={(e) => {
-                                    if (
-                                        e.target.files &&
-                                        e.target.files.length > 0
-                                    ) {
+                                    if (e.target.files && e.target.files.length > 0) {
                                         handleFileSelect(e.target.files[0]);
                                     }
                                 }}
@@ -299,21 +252,17 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                         <>
                             <div className="flex flex-col space-y-6">
                                 <div className="flex flex-col space-y-2">
-                                    <label className="text-light text-lg font-bold">
-                                        Clip Title
-                                    </label>
+                                    <label className="text-light text-lg font-bold">Clip Title</label>
                                     <input
                                         type="text"
                                         value={clipTitle}
-                                        onChange={(e) =>
-                                            setClipTitle(e.target.value)
-                                        }
+                                        onChange={(e) => setClipTitle(e.target.value)}
                                         placeholder="Enter clip title..."
-                                        className="bg-dark border-border focus:border-accent rounded-sm border px-3 py-2 text-lg text-white transition-colors duration-200 focus:outline-hidden"
+                                        className="bg-secondary border-border focus:border-accent rounded-sm border px-3 py-2 text-lg text-white transition-colors duration-200 focus:outline-hidden"
                                     />
                                 </div>
 
-                                <div className="bg-dark w-full overflow-hidden rounded-lg">
+                                <div className="bg-primary-panel w-full overflow-hidden rounded-lg">
                                     <video
                                         ref={videoRef}
                                         src={videoSrc}
@@ -323,27 +272,12 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                         controls={false}
                                     />
                                     <div className="flex items-center justify-between p-4">
-                                        <button
-                                            onClick={togglePlayPause}
-                                            className="text-light hover:text-accent transition-colors duration-200"
-                                        >
-                                            {isPlaying ? (
-                                                <FaPause className="text-2xl" />
-                                            ) : (
-                                                <FaPlay className="text-2xl" />
-                                            )}
+                                        <button onClick={togglePlayPause} className="text-light hover:text-accent transition-colors duration-200">
+                                            {isPlaying ? <FaPause className="text-2xl" /> : <FaPlay className="text-2xl" />}
                                         </button>
                                         <div className="flex items-center space-x-2">
                                             <FaVolumeHigh className="text-light" />
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="1"
-                                                step="0.01"
-                                                value={volume}
-                                                onChange={handleVolumeChange}
-                                                className="w-24"
-                                            />
+                                            <input type="range" min="0" max="1" step="0.01" value={volume} onChange={handleVolumeChange} className="w-24" />
                                         </div>
                                     </div>
                                 </div>
@@ -361,8 +295,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                         currentTime={currentTime}
                                         setCurrentTime={(time) => {
                                             if (videoRef.current) {
-                                                videoRef.current.currentTime =
-                                                    time;
+                                                videoRef.current.currentTime = time;
                                                 setCurrentTime(time);
                                             }
                                         }}
@@ -370,26 +303,13 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                 </div>
                             </div>
                             <div className="mt-6 flex justify-end space-x-4">
-                                <button
-                                    onClick={handleClose}
-                                    disabled={isProcessing}
-                                    className="hover:bg-panel-hover rounded-lg border border-white bg-transparent px-4 py-2 text-lg font-bold text-white transition-colors duration-200"
-                                >
+                                <Button onClick={handleClose} disabled={isProcessing} transparent>
                                     Cancel
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        handleUpload();
-                                    }}
-                                    disabled={
-                                        !videoSrc ||
-                                        !clipTitle.trim() ||
-                                        isProcessing ||
-                                        isSuccess ||
-                                        !isFFmpegReady
-                                    }
-                                    className="bg-accent hover:bg-accent-hover flex items-center justify-center rounded-lg px-4 py-2 text-lg font-bold text-white transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+                                </Button>
+                                <Button
+                                    onClick={handleUpload}
+                                    disabled={!videoSrc || !clipTitle.trim() || isProcessing || isSuccess || !isFFmpegReady}
+                                    customClasses="bg-accent hover:bg-accent-hover flex items-center justify-center rounded-lg px-4 py-2 text-lg font-bold text-white transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {uploadStatus === "processing" ? (
                                         <>
@@ -401,12 +321,10 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                                             <FaSpinner className="mr-2 animate-spin" />
                                             Uploading...
                                         </>
-                                    ) : isSuccess ? (
-                                        <>✓ Upload Complete</>
                                     ) : (
                                         "Upload"
                                     )}
-                                </button>
+                                </Button>
                             </div>
                         </>
                     )}

@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { login, getUser } from "../lib/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Button from "../components/primitives/Button";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -34,7 +35,7 @@ export default function LoginPage() {
         setIsSubmitting(true);
         try {
             const result = await login(username, password);
-            
+
             if (!result.success) {
                 setError(result.error || "An unknown error occurred");
                 setIsSubmitting(false);
@@ -49,69 +50,60 @@ export default function LoginPage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen w-screen bg-primary">
-                <FaSpinner className="animate-spin text-accent text-4xl" />
+            <div className="bg-primary flex min-h-screen w-screen items-center justify-center">
+                <FaSpinner className="text-accent animate-spin text-4xl" />
             </div>
         );
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen w-screen bg-primary">
-            <div className="bg-panel p-8 rounded-lg shadow-lg w-full max-w-md">
-                <div className="flex flex-col items-center mb-8">
-                    <FaChessRook className="text-accent text-6xl mb-4" />
-                    <h1 className="text-white text-3xl font-bold">Log In to Clips</h1>
+        <div className="bg-secondary flex min-h-screen w-screen items-center justify-center">
+            <div className="bg-primary w-full max-w-md rounded-lg p-8 shadow-lg">
+                <div className="mb-8 flex flex-col items-center">
+                    <FaChessRook className="text-accent mb-4 text-6xl" />
+                    <h1 className="text-3xl font-bold text-white">Log In to Clips</h1>
                 </div>
-                
+
                 <form className="space-y-4" onSubmit={handleSubmit}>
                     <div className="space-y-1">
-                        <label htmlFor="username" className="text-light block font-bold uppercase">USERNAME</label>
-                        <input 
-                            type="text" 
+                        <label htmlFor="username" className="text-light block font-bold uppercase">
+                            USERNAME
+                        </label>
+                        <input
+                            type="text"
                             id="username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             disabled={isSubmitting}
-                            className="w-full p-3 rounded-lg bg-med text-white text-lg border border-border focus:border-accent focus:outline-hidden transition-colors duration-200"
+                            className="bg-med border-border focus:border-accent w-full rounded-lg border p-3 text-lg text-white transition-colors duration-200 focus:outline-hidden"
                         />
                     </div>
-                    
+
                     <div className="space-y-1">
-                        <label htmlFor="password" className="text-light block font-bold uppercase">PASSWORD</label>
-                        <input 
-                            type="password" 
+                        <label htmlFor="password" className="text-light block font-bold uppercase">
+                            PASSWORD
+                        </label>
+                        <input
+                            type="password"
                             id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             disabled={isSubmitting}
-                            className="w-full p-3 rounded-lg bg-med text-white text-lg border border-border focus:border-accent focus:outline-hidden transition-colors duration-200"
+                            className="bg-med border-border focus:border-accent w-full rounded-lg border p-3 text-lg text-white transition-colors duration-200 focus:outline-hidden"
                         />
                     </div>
 
-                    {error && (
-                        <p className="text-red-500 font-semibold text-sm">{error}</p>
-                    )}
+                    {error && <p className="text-sm font-semibold text-red-500">{error}</p>}
 
-                    <div className="space-y-3 mt-2">
-                        <button 
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full py-3 px-4 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors duration-200 font-bold text-lg flex items-center justify-center"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <FaSpinner className="animate-spin mr-2" />
-                                    Logging in...
-                                </>
-                            ) : (
-                                'Login'
-                            )}
-                        </button>
-                        
-                        <Link 
+                    <div className="mt-2 space-y-3">
+                        <Button type="submit" customClasses="w-full py-4 text-xl" loading={isSubmitting} disabled={isSubmitting}>
+                            Login
+                        </Button>
+
+                        <Link
                             href="/register"
-                            className={`block w-full py-3 px-4 bg-transparent border border-white text-white rounded-lg hover:bg-panel-hover transition-colors duration-200 font-bold text-lg text-center ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={e => isSubmitting && e.preventDefault()}
+                            className={`hover:bg-panel-hover block w-full rounded-lg border border-white bg-transparent px-4 py-3 text-center text-lg font-bold text-white transition-colors duration-200 ${isSubmitting ? "cursor-not-allowed opacity-50" : ""}`}
+                            onClick={(e) => isSubmitting && e.preventDefault()}
                         >
                             Register
                         </Link>

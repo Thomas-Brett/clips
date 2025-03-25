@@ -1,44 +1,44 @@
 {
-  "name": "clips3",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@ffmpeg/core": "^0.12.10",
-    "@ffmpeg/ffmpeg": "^0.12.15",
-    "@ffmpeg/util": "^0.12.2",
-    "@prisma/client": "^6.5.0",
-    "bcrypt": "^5.1.1",
-    "framer-motion": "^12.5.0",
-    "jsonwebtoken": "^9.0.2",
-    "next": "^15.2.4",
-    "prettier-plugin-tailwindcss": "^0.6.11",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "react-icons": "^5.5.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.0.15",
-    "@types/bcrypt": "^5.0.2",
-    "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^22.13.13",
-    "@types/react": "^19.0.12",
-    "@types/react-dom": "^19.0.4",
-    "postcss": "^8.5.3",
-    "prisma": "^6.5.0",
-    "tailwindcss": "^4.0.15",
-    "typescript": "^5.8.2"
-  },
-  "prettier": {
-    "plugins": [
-      "prettier-plugin-tailwindcss"
-    ],
-    "width": 180,
-    "tabWidth": 4
-  }
+    "name": "clips3",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev --turbopack",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
+    },
+    "dependencies": {
+        "@ffmpeg/core": "^0.12.10",
+        "@ffmpeg/ffmpeg": "^0.12.15",
+        "@ffmpeg/util": "^0.12.2",
+        "@prisma/client": "^6.5.0",
+        "bcrypt": "^5.1.1",
+        "framer-motion": "^12.5.0",
+        "jsonwebtoken": "^9.0.2",
+        "next": "^15.2.4",
+        "prettier-plugin-tailwindcss": "^0.6.11",
+        "react": "19.0.0",
+        "react-dom": "19.0.0",
+        "react-icons": "^5.5.0"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4.0.15",
+        "@types/bcrypt": "^5.0.2",
+        "@types/jsonwebtoken": "^9.0.9",
+        "@types/node": "^22.13.13",
+        "@types/react": "^19.0.12",
+        "@types/react-dom": "^19.0.4",
+        "postcss": "^8.5.3",
+        "prisma": "^6.5.0",
+        "tailwindcss": "^4.0.15",
+        "typescript": "^5.8.2"
+    },
+    "prettier": {
+        "plugins": [
+            "prettier-plugin-tailwindcss"
+        ],
+        "printWidth": 160,
+        "tabWidth": 4
+    }
 }
