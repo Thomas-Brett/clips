@@ -8,6 +8,7 @@ import { getUser } from "./lib/auth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useUser } from "./context/userContext";
+import { ClipEditor } from "./components/ClipEditor";
 export default function Main() {
     const [selectedTab, setSelectedTab] = useState<number>(2);
     const [loading, setLoading] = useState<boolean>(true);
@@ -42,7 +43,7 @@ export default function Main() {
     };
 
     return (
-        <div className={"mx-auto mt-4 w-fit max-w-[75%]"}>
+        <div className={"mx-auto mt-4 w-[75%]"}>
             <div className={"mx-2 flex w-full items-center justify-center space-x-4 select-none"}>
                 <Tab onClick={() => handleTabClick(2)} selected={selectedTab === 2}>
                     All
@@ -55,7 +56,7 @@ export default function Main() {
                 </Tab>
             </div>
 
-            <div className={"mt-8 rounded-lg"}>
+            <div className={"mt-8 flex max-h-[calc(100vh-10rem)] justify-center rounded-lg"}>
                 {loading ? (
                     <div className="flex flex-wrap justify-center">
                         <ClipSkeleton number={8} />
@@ -70,8 +71,12 @@ export default function Main() {
                                   : "No clips found."}
                         </p>
                     </div>
+                ) : selectedTab === 1 ? (
+                    <div className="flex max-h-full w-[1200px] flex-col items-center justify-center gap-2 overflow-x-hidden overflow-y-auto">
+                        <ClipEditor clips={clips} setClips={setClips} />
+                    </div>
                 ) : (
-                    <div className="flex flex-wrap justify-center">
+                    <div className="flex max-h-full flex-wrap justify-center overflow-y-auto">
                         {clips.map((clip) => (
                             <Clip key={clip.upload_id} clip={clip} />
                         ))}

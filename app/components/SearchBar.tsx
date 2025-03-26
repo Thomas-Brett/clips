@@ -20,18 +20,18 @@ export default function SearchBar() {
     const router = useRouter();
     const { user } = useUser();
 
-    const handleFollow = async (userId: string) => {
+    const handleFollow = async (targetId: string) => {
         if (!user?.id) {
             window.location.href = "/login";
             return;
         }
 
         try {
-            const response = await followUser(user.id, userId);
+            const response = await followUser(user.id, targetId);
             if (response.success) {
                 setFollowStates((prev) => ({
                     ...prev,
-                    [userId]: !prev[userId],
+                    [targetId]: !prev[targetId],
                 }));
             }
         } catch (error) {

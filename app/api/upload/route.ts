@@ -20,33 +20,29 @@ export async function POST(request: NextRequest) {
         const thumbnail = formData.get("thumbnail") as File;
         const clipName = formData.get("clipName") as string;
         const lengthStr = formData.get("length") as string;
+        const privateClip = formData.get("private") as string;
 
         if (!video || !thumbnail || !clipName || !lengthStr) {
-            return new Response(
-                JSON.stringify({ error: "Missing required fields" }),
-                {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
-                },
-            );
+            return new Response(JSON.stringify({ error: "Missing required fields" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
         }
 
         const length = Number(lengthStr);
         if (isNaN(length) || length <= 0) {
-            return new Response(
-                JSON.stringify({ error: "Invalid length value" }),
-                {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
-                },
-            );
+            return new Response(JSON.stringify({ error: "Invalid length value" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
         }
 
-        const clipId = await prisma.clips.create({
+        const clipId = await prisma.clip.create({
             data: {
                 userId: user.id,
                 title: clipName,
                 length: Math.floor(length),
+                private: privateClip === "true",
             },
         });
 
@@ -59,15 +55,9 @@ export async function POST(request: NextRequest) {
         const thumbnailBuffer = Buffer.from(await thumbnail.arrayBuffer());
         await writeFile(join(uploadDir, `thumbnail.jpg`), thumbnailBuffer);
 
-        return new Response(
-            JSON.stringify({ success: true, clipId: clipId.id }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ success: true, clipId: clipId.id }), { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (error: any) {
         console.error("Upload error:", error);
-        return new Response(
-            JSON.stringify({ error: "Failed to process upload" }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: "Failed to process upload" }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
 }

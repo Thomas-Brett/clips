@@ -12,46 +12,44 @@ model User {
     username  String   @unique
     password  String
     createdAt DateTime @default(now())
-    clips     Clips[]
+    clips     Clip[]
 
-    followers Follows[] @relation("following")
-    following Follows[] @relation("follower")
-
-    @@index([username])
+    followers Follow[] @relation("following")
+    following Follow[] @relation("follower")
+    viewed    Clip[]   @relation("viewed")
 }
 
-model Clips {
+model Clip {
     id         String   @id @unique @default(uuid())
     userId     String
     title      String
     length     Int
     uploadedAt DateTime @default(now())
-    user       User     @relation(fields: [userId], references: [id])
+    private    Boolean  @default(false)
+    views      Int      @default(0)
 
-    @@index([id])
+    viewedBy User[] @relation("viewed")
+
+    user       User         @relation(fields: [userId], references: [id])
+    categories Categories[]
 }
 
 model Categories {
     id   String @id @unique @default(uuid())
     name String
+
+    clips Clip[]
 }
 
-model ClipCategories {
-    id         String @id @unique @default(uuid())
-    clipId     String
-    categoryId String
-}
+model Follow {
+    id        String   @id @unique @default(uuid())
+    createdAt DateTime @default(now())
 
-model Follows {
-    id          String   @id @default(uuid())
     userId      String
     followingId String
-    createdAt   DateTime @default(now())
 
     follower  User @relation("follower", fields: [userId], references: [id])
     following User @relation("following", fields: [followingId], references: [id])
 
     @@unique([userId, followingId])
-    @@index([userId])
-    @@index([followingId])
 }

@@ -8,7 +8,7 @@ export async function getRecentClips(limit: number = 100, userId?: string | null
         let whereClause = {};
 
         if (userId === undefined) {
-            const following = await prisma.follows.findMany({
+            const following = await prisma.follow.findMany({
                 where: {
                     userId: userId,
                 },
@@ -28,7 +28,7 @@ export async function getRecentClips(limit: number = 100, userId?: string | null
             };
         }
 
-        const clips = await prisma.clips.findMany({
+        const clips = await prisma.clip.findMany({
             where: whereClause,
             take: limit,
             orderBy: {
@@ -49,6 +49,7 @@ export async function getRecentClips(limit: number = 100, userId?: string | null
             username: clip.user?.username || "Unknown User",
             length: formatDuration(clip.length),
             date_uploaded: clip.uploadedAt.getTime(),
+            private: clip.private,
         }));
     } catch (error) {
         console.error("Error fetching recent clips:", error);
@@ -64,7 +65,7 @@ function formatDuration(seconds: number): string {
 
 export async function getClip(clip_id: string): Promise<Clip> {
     try {
-        const clip = await prisma.clips.findUnique({
+        const clip = await prisma.clip.findUnique({
             where: {
                 id: clip_id,
             },
@@ -79,6 +80,7 @@ export async function getClip(clip_id: string): Promise<Clip> {
                         username: true,
                     },
                 },
+                private: true,
             },
         });
 
@@ -92,6 +94,7 @@ export async function getClip(clip_id: string): Promise<Clip> {
             username: clip.user?.username || "Unknown User",
             length: formatDuration(clip.length),
             date_uploaded: clip.uploadedAt.getTime(),
+            private: clip.private,
         };
     } catch (error) {
         console.error("Error fetching clip:", error);
@@ -133,7 +136,7 @@ export async function searchClips(query: string): Promise<SearchResults> {
             }
         }
 
-        const clips = await prisma.clips.findMany({
+        const clips = await prisma.clip.findMany({
             where: {
                 AND: [
                     titleQuery
@@ -195,7 +198,7 @@ export async function searchClips(query: string): Promise<SearchResults> {
 }
 
 export async function getUserClips(username: string): Promise<Clip[]> {
-    const clips = await prisma.clips.findMany({
+    const clips = await prisma.clip.findMany({
         where: { user: { username: username } },
         include: {
             user: {
@@ -212,5 +215,20 @@ export async function getUserClips(username: string): Promise<Clip[]> {
         username: clip.user?.username || "Unknown User",
         length: formatDuration(clip.length),
         date_uploaded: clip.uploadedAt.getTime(),
+        private: clip.private,
     }));
+}
+
+export async function getCategories() {
+    const categories = await prisma.categories.findMany();
+    return categories;
+}
+
+export async function changeClipPrivacy(clip_id: string, isPrivate: boolean) {
+    const clip = await prisma.clip.update({
+        where: { id: clip_id },
+        data: { private: isPrivate },
+    });
+
+    return clip.private;
 }

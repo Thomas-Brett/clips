@@ -4,6 +4,7 @@ export interface Clip {
     username: string;
     length: string;
     date_uploaded: number;
+    private: boolean;
 }
 
 export interface UserSearchResult {

@@ -9,20 +9,48 @@ import Button from "./components/primitives/Button";
 import { motion } from "framer-motion";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { getCategories } from "./lib/clips";
 
 interface VideoClip {
     start: number;
     end: number;
 }
 
+type ClipData = {
+    video?: Blob;
+    thumbnail?: Blob;
+    length?: number;
+    clipName?: string;
+    private?: boolean;
+};
+
 export default function UploadModal() {
+    const router = useRouter();
+
     const { isOpen, setIsOpen } = useModal();
+
     const ffmpegRef = useRef<any>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
-    const [isFFmpegReady, setIsFFmpegReady] = useState(false);
     const [clip, setClip] = useState<VideoClip>({ start: 0, end: 0 });
+
+    const [step, setStep] = useState<"select" | "trim" | "title" | "upload">("select");
+    const [processing, setProcessing] = useState(false);
+    const [clipData, setClipData] = useState<ClipData>({});
+
+    const [allCategories, setAllCategories] = useState<{ name: string; id: string }[]>([]);
+
+    const startProcessing = async () => {
+        if (!videoSrc || !ffmpegRef.current) return;
+        setProcessing(true);
+        setStep("title");
+
+        const data = await processVideo(ffmpegRef.current, videoSrc, clip);
+        setClipData(data);
+        setProcessing(false);
+    };
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -40,7 +68,6 @@ export default function UploadModal() {
                     await ffmpegInstance.load(loadOptions);
 
                     ffmpegRef.current = ffmpegInstance;
-                    setIsFFmpegReady(true);
                 } catch (error) {
                     console.error("Failed to load FFmpeg:", error);
                     alert("Failed to load video processing tools. Please refresh and try again.");
@@ -59,6 +86,13 @@ export default function UploadModal() {
                 }
             };
         }
+
+        const getInitialCategories = async () => {
+            const categories = await getCategories();
+            setAllCategories(categories);
+        };
+
+        getInitialCategories();
     }, []);
 
     const handleClose = () => {
@@ -89,24 +123,24 @@ export default function UploadModal() {
                 >
                     <div className="bg-secondary flex items-center justify-between rounded-t-lg p-4">
                         <h2 className="text-light text-2xl font-bold">Upload and Trim Video</h2>
-                        <button onClick={handleClose} className="text-light hover:text-accent transition-colors duration-200">
+                        <button onClick={handleClose} className="text-light hover:text-accent cursor-pointer transition-colors duration-200">
                             <FaXmark className="text-xl" />
                         </button>
                     </div>
                     <div className="px-8 py-4 pb-8">
-                        {!videoSrc ? (
-                            <VideoSelect fileInputRef={fileInputRef} setVideoSrc={setVideoSrc} setClip={setClip} />
-                        ) : (
+                        {step === "select" && <VideoSelect fileInputRef={fileInputRef} setVideoSrc={setVideoSrc} setClip={setClip} setStep={setStep} />}
+                        {step === "trim" && (
                             <ClipEditor
-                                videoSrc={videoSrc}
+                                videoSrc={videoSrc!}
                                 clip={clip}
                                 setClip={setClip}
-                                isFFmpegReady={isFFmpegReady}
-                                ffmpegRef={ffmpegRef}
                                 videoRef={videoRef}
                                 handleClose={handleClose}
+                                startProcessing={startProcessing}
                             />
                         )}
+                        {step === "title" && <ClipTitle setStep={setStep} clipData={clipData} setClipData={setClipData} allCategories={allCategories} />}
+                        {step === "upload" && <ClipUpload processing={processing} clipData={clipData} router={router} />}
                     </div>
                 </motion.div>
             </motion.div>
@@ -114,12 +148,23 @@ export default function UploadModal() {
     );
 }
 
-function VideoSelect({ fileInputRef, setVideoSrc, setClip }: { fileInputRef: any; setVideoSrc: (src: string) => void; setClip: (clip: VideoClip) => void }) {
+function VideoSelect({
+    fileInputRef,
+    setVideoSrc,
+    setClip,
+    setStep,
+}: {
+    fileInputRef: any;
+    setVideoSrc: (src: string) => void;
+    setClip: (clip: VideoClip) => void;
+    setStep: (step: "select" | "trim" | "title" | "upload") => void;
+}) {
     const handleFileSelect = (file: File) => {
         if (file.type.startsWith("video/")) {
             const url = URL.createObjectURL(file);
             setVideoSrc(url);
             setClip({ start: 0, end: 0 });
+            setStep("trim");
         } else {
             alert("Please select a valid video file.");
         }
@@ -133,15 +178,11 @@ function VideoSelect({ fileInputRef, setVideoSrc, setClip }: { fileInputRef: any
         }
     };
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-    };
-
     return (
         <div
             className="border-light hover:border-accent relative flex h-64 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors duration-200"
             onDrop={handleDrop}
-            onDragOver={handleDragOver}
+            onDragOver={(e) => e.preventDefault()}
             onClick={() => fileInputRef.current?.click()}
         >
             <FaVideo className="text-light mb-4 text-4xl" />
@@ -165,28 +206,21 @@ function ClipEditor({
     videoSrc,
     clip,
     setClip,
-    isFFmpegReady,
-    ffmpegRef,
     videoRef,
     handleClose,
+    startProcessing,
 }: {
     videoSrc: string;
     clip: VideoClip;
     setClip: (clip: VideoClip) => void;
-    isFFmpegReady: boolean;
-    ffmpegRef: any;
     videoRef: any;
     handleClose: () => void;
+    startProcessing: () => void;
 }) {
-    const router = useRouter();
     const [isPlaying, setIsPlaying] = useState(false);
     const [volume, setVolume] = useState(1);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [uploadStatus, setUploadStatus] = useState<"idle" | "processing" | "uploading" | "success">("idle");
-    const [clipTitle, setClipTitle] = useState("");
-    const [isSuccess, setIsSuccess] = useState(false);
 
     const togglePlayPause = () => {
         if (videoRef.current) {
@@ -231,91 +265,10 @@ function ClipEditor({
         }
     };
 
-    const handleUpload = async () => {
-        if (!isFFmpegReady || !videoSrc || !ffmpegRef.current) return;
-        const ffmpeg = ffmpegRef.current;
-
-        setIsProcessing(true);
-        setUploadStatus("processing");
-
-        try {
-            await ffmpeg.writeFile("input.mp4", await fetchFile(videoSrc));
-
-            const startTime = clip.start.toFixed(2);
-            const durationTime = (clip.end - clip.start).toFixed(2);
-
-            await ffmpeg.exec(["-ss", startTime, "-i", "input.mp4", "-t", durationTime, "-c", "copy", "output.mp4"]);
-
-            const data = await ffmpeg.readFile("output.mp4");
-
-            await ffmpeg.exec(["-i", "output.mp4", "-ss", "00:00:01.000", "-vframes", "1", "thumbnail.jpg"]);
-
-            const thumbData = await ffmpeg.readFile("thumbnail.jpg");
-
-            const trimmedBlob = new Blob([data], { type: "video/mp4" });
-
-            const thumbnailBlob = new Blob([thumbData], { type: "image/jpeg" });
-
-            const formData = new FormData();
-            formData.append("video", trimmedBlob, "trimmed-video.mp4");
-            formData.append("thumbnail", thumbnailBlob, "thumbnail.jpg");
-            formData.append("clipName", clipTitle);
-            const durationSeconds = clip.end - clip.start;
-            formData.append("length", String(durationSeconds));
-
-            setUploadStatus("uploading");
-
-            try {
-                const response = await fetch("/api/upload", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || "Failed to upload video");
-                }
-
-                const responseData = await response.json();
-                console.log("Video uploaded successfully!", responseData);
-                setIsSuccess(true);
-                setUploadStatus("success");
-                await ffmpeg.deleteFile("input.mp4");
-                await ffmpeg.deleteFile("output.mp4");
-                await ffmpeg.deleteFile("thumbnail.jpg");
-
-                router.push(`/clip/${responseData.id}`);
-            } catch (error) {
-                await ffmpeg.deleteFile("input.mp4");
-                await ffmpeg.deleteFile("output.mp4");
-                await ffmpeg.deleteFile("thumbnail.jpg");
-                console.error("Error uploading video:", error);
-                alert("Failed to upload video. Please try again.");
-                setUploadStatus("idle");
-            }
-        } catch (error) {
-            console.error("Error processing video with FFmpeg:", error);
-            alert("Failed to process video. Please try again.");
-            setUploadStatus("idle");
-        }
-
-        setIsProcessing(false);
-    };
     return (
         <>
             <div className="flex flex-col space-y-6">
-                <div className="flex flex-col space-y-2">
-                    <label className="text-light text-lg font-bold">Clip Title</label>
-                    <input
-                        type="text"
-                        value={clipTitle}
-                        onChange={(e) => setClipTitle(e.target.value)}
-                        placeholder="Enter clip title..."
-                        className="bg-secondary border-border focus:border-accent rounded-sm border px-3 py-2 text-lg text-white transition-colors duration-200 focus:outline-hidden"
-                    />
-                </div>
-
-                <div className="bg-primary-panel w-full overflow-hidden rounded-lg">
+                <div className="bg-primary-panel max-h-[700px] w-full overflow-hidden rounded-lg">
                     <video
                         ref={videoRef}
                         src={videoSrc}
@@ -356,29 +309,178 @@ function ClipEditor({
                 </div>
             </div>
             <div className="mt-6 flex justify-end space-x-4">
-                <Button onClick={handleClose} disabled={isProcessing} transparent>
+                <Button onClick={handleClose} transparent>
                     Cancel
                 </Button>
                 <Button
-                    onClick={handleUpload}
-                    disabled={!videoSrc || !clipTitle.trim() || isProcessing || isSuccess || !isFFmpegReady}
+                    onClick={startProcessing}
+                    disabled={!videoSrc}
                     customClasses="bg-accent hover:bg-accent-hover flex items-center justify-center rounded-lg px-4 py-2 text-lg font-bold text-white transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {uploadStatus === "processing" ? (
-                        <>
-                            <FaSpinner className="mr-2 animate-spin" />
-                            Processing...
-                        </>
-                    ) : uploadStatus === "uploading" ? (
-                        <>
-                            <FaSpinner className="mr-2 animate-spin" />
-                            Uploading...
-                        </>
-                    ) : (
-                        "Upload"
-                    )}
+                    Next
                 </Button>
             </div>
         </>
     );
+}
+
+function ClipTitle({
+    setStep,
+    clipData,
+    setClipData,
+    allCategories,
+}: {
+    setStep: (step: "select" | "trim" | "title" | "upload") => void;
+    clipData: ClipData;
+    setClipData: (clipData: ClipData) => void;
+    allCategories: { name: string; id: string }[];
+}) {
+    const [clipTitle, setClipTitle] = useState("");
+    const [privateClip, setPrivateClip] = useState(false);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+    const startUpload = () => {
+        if (!clipTitle) return;
+        setClipData({ ...clipData, clipName: clipTitle, private: privateClip });
+        setStep("upload");
+    };
+
+    return (
+        <div className="flex flex-col space-y-4">
+            <div className="flex flex-col space-y-2">
+                <label className="text-light text-lg font-bold">Clip Title</label>
+                <input
+                    type="text"
+                    value={clipTitle}
+                    onChange={(e) => setClipTitle(e.target.value)}
+                    placeholder="Enter clip title..."
+                    className="bg-secondary border-border focus:border-accent rounded-sm border px-3 py-2 text-lg text-white transition-colors duration-200 focus:outline-hidden"
+                />
+            </div>
+
+            <div className="ml-1 flex items-center space-x-2">
+                <input
+                    type="checkbox"
+                    id="private"
+                    checked={privateClip}
+                    onChange={(e) => setPrivateClip(e.target.checked)}
+                    className="bg-secondary border-border focus:border-accent scale-150 rounded-sm border px-3 py-2 text-lg text-white transition-colors duration-200 focus:outline-hidden"
+                />
+                <label htmlFor="private" className="text-light font-semibold select-none">
+                    Upload as private
+                </label>
+            </div>
+
+            <div className="flex flex-col space-y-2">
+                <label className="text-light text-lg font-bold">Categories</label>
+                <div className="flex flex-wrap gap-2">
+                    {allCategories &&
+                        allCategories.map((category: { name: string; id: string }) => (
+                            <div
+                                key={category.id}
+                                className={`bg-secondary border-border focus:border-accent rounded-sm border px-3 py-2 text-lg text-white transition-colors duration-200 focus:outline-hidden ${
+                                    selectedCategories.includes(category.id) ? "bg-accent" : ""
+                                }`}
+                                onClick={() => {
+                                    if (selectedCategories.includes(category.id)) {
+                                        setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
+                                    } else {
+                                        setSelectedCategories([...selectedCategories, category.id]);
+                                    }
+                                }}
+                            >
+                                {category.name}
+                            </div>
+                        ))}
+                </div>
+            </div>
+
+            <Button onClick={startUpload} disabled={!clipTitle}>
+                Upload
+            </Button>
+        </div>
+    );
+}
+
+function ClipUpload({ processing, clipData, router }: { processing: boolean; clipData: ClipData; router: any }) {
+    const [uploading, setUploading] = useState(false);
+
+    useEffect(() => {
+        if (!processing && !uploading) {
+            setUploading(true);
+            uploadVideo(clipData, router);
+        }
+    }, [processing, uploading]);
+
+    return (
+        <div className="border-accent flex h-40 flex-col items-center justify-center rounded-lg border-2 transition-colors duration-200">
+            <FaSpinner className="text-accent mb-4 animate-spin text-4xl" />
+            <p className="text-light text-xl">{processing ? "Waiting on video to finish processing..." : uploading ? "Uploading..." : "Uploaded"}</p>
+        </div>
+    );
+}
+
+async function processVideo(ffmpeg: any, videoSrc: string, clip: VideoClip): Promise<ClipData> {
+    try {
+        await ffmpeg.writeFile("input.mp4", await fetchFile(videoSrc));
+
+        const startTime = clip.start.toFixed(2);
+        const durationTime = (clip.end - clip.start).toFixed(2);
+
+        await ffmpeg.exec(["-ss", startTime, "-i", "input.mp4", "-t", durationTime, "-c", "copy", "output.mp4"]);
+
+        const data = await ffmpeg.readFile("output.mp4");
+
+        await ffmpeg.exec(["-i", "output.mp4", "-ss", "00:00:01.000", "-vframes", "1", "thumbnail.jpg"]);
+
+        const thumbData = await ffmpeg.readFile("thumbnail.jpg");
+        const trimmedBlob = new Blob([data], { type: "video/mp4" });
+        const thumbnailBlob = new Blob([thumbData], { type: "image/jpeg" });
+        const durationSeconds = clip.end - clip.start;
+
+        await ffmpeg.deleteFile("input.mp4");
+        await ffmpeg.deleteFile("output.mp4");
+        await ffmpeg.deleteFile("thumbnail.jpg");
+
+        return {
+            video: trimmedBlob,
+            thumbnail: thumbnailBlob,
+            length: durationSeconds,
+        };
+    } catch (error) {
+        console.error("Error processing video with FFmpeg:", error);
+        await ffmpeg.deleteFile("input.mp4");
+        await ffmpeg.deleteFile("output.mp4");
+        await ffmpeg.deleteFile("thumbnail.jpg");
+        alert("Failed to process video. Please try again.");
+        throw error;
+    }
+}
+
+async function uploadVideo(clipData: ClipData, router: any) {
+    try {
+        const formData = new FormData();
+        formData.append("video", clipData.video as File);
+        formData.append("thumbnail", clipData.thumbnail as File);
+        formData.append("clipName", clipData.clipName as string);
+        formData.append("length", clipData.length?.toString() as string);
+        formData.append("private", clipData.private as unknown as string);
+
+        const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to upload video");
+        }
+
+        const responseData = await response.json();
+
+        router.push(`/clip/${responseData.clipId}`);
+    } catch (error) {
+        console.error("Error uploading video:", error);
+        alert("Failed to upload video. Please try again.");
+    }
 }

@@ -3,6 +3,7 @@
 import { Clip as ClipType } from "../types";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { formatDate } from "../lib/clientTools";
 
 export default function Clip({
     clip,
@@ -13,9 +14,6 @@ export default function Clip({
     type?: "small" | "large";
     bgOption?: "primary-panel" | "primary";
 }) {
-    const date = new Date(Number(clip.date_uploaded));
-    let clipDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes() > 10 ? date.getMinutes() : "0" + date.getMinutes()}`;
-
     const router = useRouter();
 
     const handleClick = (smallOnly: boolean = false) => {
@@ -32,20 +30,14 @@ export default function Clip({
         <div
             onClick={() => handleClick(true)}
             onMouseOver={handleMouseOver}
-            className={`mx-2 my-4 inline-flex overflow-hidden rounded-sm ${type === "small" ? "bg-primary-panel" : `bg-${bgOption} w-96 flex-col`}`}
+            className={`inline-flex overflow-hidden rounded-sm ${type === "small" ? "bg-primary-panel mx-1" : `bg-${bgOption} m-2 w-96 flex-col`}`}
         >
             <div
                 onClick={() => handleClick()}
                 onMouseOver={handleMouseOver}
-                className={`bg-panel relative cursor-pointer overflow-hidden rounded-t-lg ${type === "small" ? "h-20 w-24" : "h-[216px] w-full"}`}
+                className={`bg-panel relative cursor-pointer overflow-hidden ${type === "small" ? "h-20 w-24 rounded-l" : "h-[216px] w-full rounded-t-lg"}`}
             >
-                <Image
-                    height={type === "small" ? 80 : 216}
-                    width={type === "small" ? 96 : 384}
-                    src={`/api/thumbnail/${clip.upload_id}`}
-                    className={"rounded-t-lg"}
-                    alt={"Thumbnail"}
-                />
+                <Image height={type === "small" ? 80 : 216} width={type === "small" ? 96 : 384} src={`/api/thumbnail/${clip.upload_id}`} alt={"Thumbnail"} />
                 <div className={"bg-opacity-40 absolute right-1 bottom-1 rounded-lg bg-black px-1 font-bold text-white select-none"}>{clip.length}</div>
             </div>
             <div className={"mx-1 flex flex-col justify-between px-2 py-1"}>
@@ -64,7 +56,7 @@ export default function Clip({
                             {clip.username}
                         </div>
                     )}
-                    <h3 className={`text text-light ${type === "small" ? "" : "ml-auto"}`}>{clipDate}</h3>
+                    <h3 className={`text text-light ${type === "small" ? "" : "ml-auto"}`}>{formatDate(clip.date_uploaded)}</h3>
                 </div>
             </div>
         </div>
