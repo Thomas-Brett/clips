@@ -1,0 +1,57 @@
+datasource db {
+    provider = "mysql"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model User {
+    id        String   @id @default(uuid())
+    username  String   @unique
+    password  String
+    createdAt DateTime @default(now())
+    clips     Clips[]
+
+    followers Follows[] @relation("following")
+    following Follows[] @relation("follower")
+
+    @@index([username])
+}
+
+model Clips {
+    id         String   @id @unique @default(uuid())
+    userId     String
+    title      String
+    length     Int
+    uploadedAt DateTime @default(now())
+    user       User     @relation(fields: [userId], references: [id])
+
+    @@index([id])
+}
+
+model Categories {
+    id   String @id @unique @default(uuid())
+    name String
+}
+
+model ClipCategories {
+    id         String @id @unique @default(uuid())
+    clipId     String
+    categoryId String
+}
+
+model Follows {
+    id          String   @id @default(uuid())
+    userId      String
+    followingId String
+    createdAt   DateTime @default(now())
+
+    follower  User @relation("follower", fields: [userId], references: [id])
+    following User @relation("following", fields: [followingId], references: [id])
+
+    @@unique([userId, followingId])
+    @@index([userId])
+    @@index([followingId])
+}
