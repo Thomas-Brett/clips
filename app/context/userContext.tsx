@@ -22,5 +22,13 @@ export function useUser() {
 export function UserProvider({ initialUser, children }: { initialUser: Partial<User> | null; children: React.ReactNode }) {
     const [user, setUser] = useState<Partial<User> | null>(initialUser);
 
+    useEffect(() => {
+        const fetchUser = async () => {
+            const user = await getUser();
+            setUser(user);
+        };
+        fetchUser();
+    }, []);
+
     return <UserContext.Provider value={{ user, setUser }}>{children}</UserContext.Provider>;
 }

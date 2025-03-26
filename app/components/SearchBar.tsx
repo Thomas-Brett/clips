@@ -7,33 +7,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SearchResults } from "../types";
 import Link from "next/link";
 import { followUser } from "@/app/lib/users";
-import { getUser } from "../lib/auth";
 import { isFollowingEndpoint } from "@/app/lib/users";
+import { useRouter } from "next/navigation";
+import { useUser } from "../context/userContext";
 
 export default function SearchBar() {
     const [searchQuery, setSearchQuery] = useState("");
     const [results, setResults] = useState<SearchResults>({ clips: [], users: [] });
     const [showResults, setShowResults] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [currentUser, setCurrentUser] = useState<any>(null);
     const [followStates, setFollowStates] = useState<{ [key: string]: boolean }>({});
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            const user = await getUser();
-            setCurrentUser(user);
-        };
-        fetchUser();
-    }, []);
+    const router = useRouter();
+    const { user } = useUser();
 
     const handleFollow = async (userId: string) => {
-        if (!currentUser?.id) {
+        if (!user?.id) {
             window.location.href = "/login";
             return;
         }
 
         try {
-            const response = await followUser(currentUser.id, userId);
+            const response = await followUser(user.id, userId);
             if (response.success) {
                 setFollowStates((prev) => ({
                     ...prev,
@@ -53,8 +47,8 @@ export default function SearchBar() {
                     const searchResults = await searchClips(searchQuery);
                     setResults(searchResults);
 
-                    if (searchResults.users.length > 0 && currentUser?.id) {
-                        const followStatePromises = searchResults.users.map((user) => isFollowingEndpoint(currentUser.id, user.id));
+                    if (searchResults.users.length > 0 && user?.id) {
+                        const followStatePromises = searchResults.users.map((user) => isFollowingEndpoint(user.id, user.id));
                         const followStateResults = await Promise.all(followStatePromises);
 
                         const newFollowStates: { [key: string]: boolean } = {};
@@ -77,7 +71,7 @@ export default function SearchBar() {
             setResults({ clips: [], users: [] });
             setFollowStates({});
         }
-    }, [searchQuery, currentUser?.id]);
+    }, [searchQuery, user?.id]);
 
     useEffect(() => {
         if (searchQuery.trim()) {
@@ -168,7 +162,7 @@ export default function SearchBar() {
                                                                 </div>
                                                             </div>
                                                         </Link>
-                                                        {currentUser?.id !== user.id && (
+                                                        {user?.id !== user.id && (
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.preventDefault();
@@ -176,12 +170,10 @@ export default function SearchBar() {
                                                                     handleFollow(user.id);
                                                                 }}
                                                                 className={`rounded-full px-4 py-1 ${
-                                                                    currentUser
-                                                                        ? "bg-accent/10 hover:bg-accent/20 text-accent"
-                                                                        : "bg-med hover:bg-dark text-light"
+                                                                    user?.id ? "bg-accent/10 hover:bg-accent/20 text-accent" : "bg-med hover:bg-dark text-light"
                                                                 } text-sm font-medium transition-colors`}
                                                             >
-                                                                {!currentUser ? "Sign in to follow" : followStates[user.id] ? "Following" : "Follow"}
+                                                                {!user?.id ? "Sign in to follow" : followStates[user.id] ? "Following" : "Follow"}
                                                             </button>
                                                         )}
                                                     </div>
@@ -199,9 +191,13 @@ export default function SearchBar() {
                                                     initial={{ opacity: 0, x: -20 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: index * 0.05 }}
-                                                    className="hover:bg-dark/50 border-border cursor-pointer border-b p-3 transition-colors duration-150 last:border-0"
+                                                    className="hover:bg-secondary-hover border-border cursor-pointer border-b p-3 transition-colors duration-150 last:border-0"
                                                     onClick={() => {
                                                         setShowResults(false);
+                                                        router.push(`/clip/${result.upload_id}`);
+                                                    }}
+                                                    onMouseOver={() => {
+                                                        router.prefetch(`/clip/${result.upload_id}`);
                                                     }}
                                                 >
                                                     <div className="flex items-center justify-between">

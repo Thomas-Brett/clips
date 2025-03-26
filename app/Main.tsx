@@ -1,56 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Clip from "@/app/components/Clip";
+import Clip, { ClipSkeleton } from "@/app/components/Clip";
 import { getRecentClips } from "./lib/clips";
 import { Clip as ClipType } from "./types";
 import { getUser } from "./lib/auth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-
-const LoadingSkeleton = () => (
-    <div className="flex flex-wrap justify-center">
-        {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-secondary mx-2 my-4 inline-flex w-96 animate-pulse flex-col rounded-sm">
-                <div className="bg-secondary-hover relative h-[216px] w-full rounded-t-lg">
-                    <div className="bg-secondary-hover absolute right-1 bottom-1 h-5 w-10 rounded-lg" />
-                </div>
-                <div className="mx-1 flex w-full flex-col px-2 py-1">
-                    <div className="bg-secondary-hover mt-1 h-8 w-3/4 rounded-sm" />
-                    <div className="my-1 flex items-center justify-between">
-                        <div className="bg-secondary-hover h-4 w-24 rounded-sm" />
-                        <div className="bg-secondary-hover h-4 w-32 rounded-sm" />
-                    </div>
-                </div>
-            </div>
-        ))}
-    </div>
-);
-
+import { useUser } from "./context/userContext";
 export default function Main() {
     const [selectedTab, setSelectedTab] = useState<number>(2);
     const [loading, setLoading] = useState<boolean>(true);
     const [clips, setClips] = useState<ClipType[]>([]);
-    const [userId, setUserId] = useState<string | null>(null);
+    const { user } = useUser();
     const router = useRouter();
-
-    useEffect(() => {
-        const getCurrentUserId = async () => {
-            const user = await getUser();
-            if (!user && selectedTab === 1) {
-                setSelectedTab(0);
-            }
-            setUserId(user?.id || null);
-        };
-        getCurrentUserId();
-    }, [selectedTab]);
 
     useEffect(() => {
         const fetchClips = async () => {
             setLoading(true);
             setClips([]);
             try {
-                const response = await getRecentClips(100, selectedTab === 1 ? userId || undefined : selectedTab === 0 ? undefined : null);
+                const response = await getRecentClips(100, selectedTab === 1 ? user?.id || undefined : selectedTab === 0 ? undefined : null);
                 setClips(response);
             } catch (error) {
                 console.error("Error fetching clips:", error);
@@ -61,10 +31,10 @@ export default function Main() {
         };
 
         fetchClips();
-    }, [selectedTab, userId]);
+    }, [selectedTab, user?.id]);
 
     const handleTabClick = (tabIndex: number) => {
-        if ((tabIndex === 1 || tabIndex === 0) && !userId) {
+        if ((tabIndex === 1 || tabIndex === 0) && !user?.id) {
             router.push("/login");
             return;
         }
@@ -87,7 +57,9 @@ export default function Main() {
 
             <div className={"mt-8 rounded-lg"}>
                 {loading ? (
-                    <LoadingSkeleton />
+                    <div className="flex flex-wrap justify-center">
+                        <ClipSkeleton number={8} />
+                    </div>
                 ) : clips.length === 0 ? (
                     <div className="flex flex-col items-center justify-center space-y-4 text-center">
                         <p className={"text-center text-2xl text-white"}>

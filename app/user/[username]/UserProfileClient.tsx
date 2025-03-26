@@ -72,9 +72,11 @@ export default function UserProfileClient({ initialUser, initialClips }: UserPro
 
     return (
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center p-8">
-            <div className="bg-panel mb-8 w-full rounded-lg p-8">
+            <div className="bg-primary mb-8 w-full rounded-lg p-8">
                 <div className="flex items-center gap-6">
-                    <div className="bg-accent flex h-24 w-24 items-center justify-center rounded-full text-4xl font-bold text-white">{user.username[0].toUpperCase()}</div>
+                    <div className="bg-accent flex h-24 w-24 items-center justify-center rounded-full text-4xl font-bold text-white">
+                        {user.username[0].toUpperCase()}
+                    </div>
                     <div className="flex-1">
                         <div className="flex items-center justify-between">
                             <h1 className="mb-2 text-3xl font-bold text-white">{user.username}</h1>
@@ -109,24 +111,28 @@ export default function UserProfileClient({ initialUser, initialClips }: UserPro
                         <div className="text-light flex gap-4">
                             <span>Joined {user.formattedJoinDate}</span>
                             <span>•</span>
-                            <span>{followStats.followersCount} followers</span>
+                            <span>
+                                {followStats.followersCount} {followStats.followersCount === 1 ? "follower" : "followers"}
+                            </span>
                             <span>•</span>
                             <span>{followStats.followingCount} following</span>
                             <span>•</span>
-                            <span>{clips.length} clips</span>
+                            <span>
+                                {clips.length} {clips.length === 1 ? "clip" : "clips"}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="w-full">
+            <div className="bg-primary w-full rounded-lg p-4">
                 <h2 className="mb-4 text-2xl font-bold text-white">Clips</h2>
                 {clips.length === 0 ? (
                     <p className="text-light text-center text-lg">No clips uploaded yet</p>
                 ) : (
                     <div className="flex flex-wrap justify-center">
                         {clips.map((clip) => (
-                            <Clip key={clip.upload_id} clip={clip} />
+                            <Clip bgOption="primary-panel" key={clip.upload_id} clip={clip} />
                         ))}
                     </div>
                 )}
